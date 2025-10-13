@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Semantrise</title>
+    <style>
+        hr {
+            width: 90%;
+        }
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
+        .game-container {
+            background: #fff;
+            padding: 32px 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 320px;
+        }
+        .word-stack {
+            width: 100%;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .word {
+            background: #e3e7fa;
+            color: #2d3a5a;
+            padding: 8px 24px;
+            margin: 4px 0;
+            border-radius: 8px;
+            font-size: 1.2em;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .input-area {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        input[type="text"] {
+            padding: 8px 16px;
+            font-size: 1em;
+            border-radius: 8px;
+            border: 1px solid #bfc8e6;
+            width: 80%;
+            box-sizing: border-box;
+        }
+        button {
+            margin-left: 8px;
+            padding: 8px 16px;
+            font-size: 1em;
+            border-radius: 8px;
+            border: none;
+            background: #4f6bed;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #bfc8e6;
+            cursor: not-allowed;
+        }
+        .game-over-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(44, 62, 80, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #errorBanner {
+            margin-top: 12px;
+            background: #ffd6d6;
+            color: #c0392b;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div style="position: absolute; top: 32px; left: 32px;">
+            <div id="turnCounter" style="font-size:1.1em; color:#2d3a5a; margin-bottom:4px;">Turn: 0</div>
+            <div id="scoreCounter" style="font-size:1.1em; color:#2d3a5a;">Score: 0</div>
+        </div>
+        <div id="instructionsBanner" style="
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e3e7fa;
+            color: #2d3a5a;
+            padding: 10px 32px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            z-index: 10;
+            text-align: center;
+        ">
+            Enter a word related to the topic. Click a word to see its definition. Only words above the threshold are updated.
+        </div>
+        <div class="game-over-popup" style="display:none">
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background: rgba(44, 62, 80, 0.85);
+                padding: 32px 64px;
+                border-radius: 16px;
+            ">
+                <div style="
+                    color: #fff;
+                    font-size: 2.5em;
+                    font-weight: bold;
+                    text-align: center;
+                    margin-bottom: 24px;
+                ">Game Over</div>
+                <button id="tryAgainBtn" style="
+                    padding: 12px 32px;
+                    font-size: 1.2em;
+                    border-radius: 8px;
+                    border: none;
+                    background: #4f6bed;
+                    color: #fff;
+                    cursor: pointer;
+                " onclick="window.location.href = '/';">Try Again</button>
+            </div>
+        </div>
+        <div class="word-stack" id="wordStack">
+            <!-- Words will be rendered here -->
+        </div>
+        <form class="input-area" id="inputForm">
+            <input type="text" id="userInput" autocomplete="off" placeholder="Type your word..." required />
+            <button type="submit">Send</button>
+        </form>
+        <div id="errorMessage" style="display:none"></div>
+    </div>
+    <script>
+        // --- Game State Variables ---
+        let state;
+
+        // --- Utility Functions ---
+        // Render the stack of words in the UI, handle display updates.
+        function renderWords() {
+            const stack = document.getElementById('wordStack');
+            document.getElementById('turnCounter').innerText = 'Turn: ' + state.turns;
+            document.getElementById('scoreCounter').innerText = `Score: ${Math.floor(state.score * 1000)}`;
+            stack.innerHTML = '';
+            state.words.slice().reverse().forEach((word, index) => {
+                if (index == state.words.length - state.cutoff) {
+                    stack.appendChild(document.createElement('hr'));
+                }
+                const div = document.createElement('dl');
+                const dt = document.createElement('dt');
+                const dd = document.createElement('dd');
+                div.className = 'word';
+                dt.textContent = word.word;
+                if (word.definition) {
+                    dd.textContent = word.definition;
+                }
+                div.appendChild(dt);
+                div.appendChild(dd);
+                stack.appendChild(div);
+                console.log(index, word.word)
+            });
+            if (state.state == 'game_over') {
+                const overlay = document.getElementsByClassName('game-over-overlay');
+                overlay[0].setAttribute('style', '');
+            }
+            if (state.message) {
+                document.getElementById('errorMessage').textContent = state.message;
+                document.getElementById('errorMessage').setAttribute('style', 'display:show');
+            } else if (state.removed_words) {
+                document.getElementById('errorMessage').textContent = state.removed_words;
+                document.getElementById('errorMessage').setAttribute('style', 'display:show');
+            } else {
+                document.getElementById('errorMessage').setAttribute('style', 'display:none');
+            }
+        }
+
+        // --- API Calls ---
+        // Fetch initial game state (GET)
+        async function fetchInitialGameState() {
+            const params = new URLSearchParams(window.location.search);
+            const gameid = params.get('gameid');
+            const url = `/gamestate${gameid ? '?gameid=' + encodeURIComponent(gameid) : ''}`;
+            const response = await fetch(url);
+            if (!response.ok) return;
+            state = await response.json();
+            console.log(state);
+            renderWords();
+        }
+
+        // Fetch game state after user input (POST)
+        async function fetchGameState(input = "") {
+            const params = new URLSearchParams(window.location.search);
+            const gameid = params.get('gameid');
+            const url = `/gamestate${gameid ? '?gameid=' + encodeURIComponent(gameid) : ''}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ word: input, action: 'guess' })
+            });
+            if (!response.ok) return;
+            state = await response.json();
+            console.log(state);
+            renderWords();
+        }
+
+        // Fetch definition for a word (POST)
+        async function fetchWordDefinition(word) {
+            const params = new URLSearchParams(window.location.search);
+            const gameid = params.get('gameid');
+            const url = `/gamestate${gameid ? '?gameid=' + encodeURIComponent(gameid) : ''}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 'action': 'requestHint', 'word': word })
+            });
+            if (!response.ok) return null;
+            state = await response.json();
+            console.log(state);
+            renderWords();
+        }
+
+        // --- Event Handlers ---
+        // Handle word click to show definition
+        document.addEventListener('click', async function(e) {
+            const wordElement = e.target.closest('.word');
+            if (!wordElement) return;
+            const clickedWord = wordElement.querySelector('dt') ? wordElement.querySelector('dt').textContent : wordElement.textContent;
+            fetchWordDefinition(clickedWord);
+        });
+
+        // Handle form submission for user input
+        document.getElementById('inputForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('userInput');
+            const word = input.value.trim();
+            if (word) {
+                await fetchGameState(word);
+                input.value = '';
+                input.focus();
+            }
+        });
+
+        // --- Initial Load ---
+        fetchInitialGameState();
+    </script>
+</body>
+</html>
