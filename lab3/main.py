@@ -3,6 +3,17 @@ import numpy as np
 import torch
 from transformers import BertForQuestionAnswering
 from transformers import BertTokenizer
+from googletrans import Translator, constants
+from pprint import pprint
+import asyncio
+
+translator = Translator()
+
+async def TranslateText(text):
+  async with Translator() as translator:
+    result = await translator.translate(text, src="en", dest="ro")
+    print(result.text)
+
 
 def load_external_and_create_csv():
     coqa = pd.read_json('http://downloads.cs.stanford.edu/nlp/data/coqa/coqa-train-v1.0.json')
@@ -27,8 +38,9 @@ def load_external_and_create_csv():
     # saving the dataframe to csv file for further loading
     new_df.to_csv("CoQA_data.csv", index=False)
 
-load_external_and_create_csv()
+# load_external_and_create_csv()
 data = pd.read_csv("CoQA_data.csv")
+texts = list(data['text'].unique().astype('str'))
 
 model = BertForQuestionAnswering.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
 tokenizer = BertTokenizer.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
@@ -75,7 +87,11 @@ def question_answer(question, text):
     if answer.startswith("[CLS]"):
         answer = "Unable to find the answer to your question."
 
-    print("nPredicted answer:n{}".format(answer.capitalize()))
-
-
-question_answer(input('question'), input('text'))
+    print(f"Predicted answer: {answer.capitalize()}")
+    return answer.capitalize()
+import random
+t = texts[random.randrange(len(texts))]
+print(t)
+answ = question_answer(input('Question: '), t)#input('Your text: '))
+print('Translating answer...')
+asyncio.run(TranslateText(answ))
