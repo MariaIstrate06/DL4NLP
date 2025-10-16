@@ -1,18 +1,15 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
-import nltk
-nltk.download('words')
-nltk.download('wordnet')
+# nltk.download('words')
+# nltk.download('wordnet')
 from nltk.corpus import words
 from nltk.corpus import wordnet
 import random, os, json, uuid
 
-
-
 HTML_FILE = "index.html"
 GAMES = dict()
 
-def get_random_words(draws=1):
+def get_random_words(draws=1, sc=None):
     drws = []
     for _ in range(draws):
         while True:
@@ -21,7 +18,7 @@ def get_random_words(draws=1):
                 continue
             if attempt in drws:
                 continue
-            drws.append({'word': attempt, 'score': random.random() * 5}) # At most 5 turns before a word is removed
+            drws.append({'word': attempt, 'score': random.random() * 5 if sc is None else sc}) # At most 5 turns before a word is removed
             break
     drws.sort(key=lambda w: w['score'], reverse=True)
     return drws
@@ -32,19 +29,52 @@ def generate_game(gameid):
         'state': 'ongoing',
         'words': get_random_words(7),
         'cutoff': 3, # If word scores are updated to be under this, the word is consumed.
-        'word_ceiling': 13, # More than this amount of words is a game over.
+        'word_ceiling': 10, # More than this amount of words is a game over.
         'turns': 0,
         'score': 0,
     }
 
+def get_stuff(word):
+    hypernyms = []
+    hyponyms = []
+    antonyms = []
+    synonyms = []
+    meronyms = []
+    for synset in wordnet.synsets(word):
+        for h in synset.hyponyms():
+            hyponyms += {a.name() for a in h.lemmas()}
+        for h in synset.hypernyms():
+            hypernyms += {a.name() for a in h.lemmas()}
+        for l in synset.lemmas():
+            synonyms += [l.name()]
+            if l.antonyms():
+                antonyms += {a.name() for a in l.antonyms()}
+        for h in synset.part_meronyms():
+            meronyms += {a.name() for a in h.lemmas()}
+        for h in synset.substance_meronyms():
+            meronyms += {a.name() for a in h.lemmas()}
+        for h in synset.member_meronyms():
+            meronyms += {a.name() for a in h.lemmas()}
+    return {
+        'synonyms': set(synonyms),
+        'antonyms': set(antonyms),
+        'hyponyms': set(hyponyms),
+        'hypernyms': set(hypernyms),
+        'meronyms': set(meronyms),
+    }
+
 def get_similarity(word, guess):
+    stuff = get_stuff(word)
     synsets1 = wordnet.synsets(guess)
     synsets2 = wordnet.synsets(word)
     if synsets1 and synsets2:
         sim = synsets1[0].wup_similarity(synsets2[0])
-        return sim if sim is not None else 0.0
     else:
-        return 0.0
+        sim = 0.0
+    for nyms in stuff.values():
+        if guess in nyms:
+            sim += 3.0
+    return sim
 
 def update_game_state(state: dict, update: dict) -> dict:
     guess = update['word']
@@ -72,11 +102,11 @@ def update_game_state(state: dict, update: dict) -> dict:
                 if w['word'] in altered_words:
                     removed_words.append(w['word'])
                     state['score'] += w['score']
-                    state['words'].remove(w)
+            state['turns'] = 1 + state['turns']
+            state['words'] += get_random_words(1, sc=0.0)
+            state['words'] = list(filter(lambda w: w['word'] not in removed_words, state['words']))
             state['altered_words'] = altered_words
             state['removed_words'] = removed_words
-            state['turns'] = 1 + state['turns']
-            state['words'] += get_random_words(1)
         case 'requestHint':
             for w in state['words']:
                 if w['word'] == guess:

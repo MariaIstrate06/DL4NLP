@@ -71,7 +71,7 @@
             background: #bfc8e6;
             cursor: not-allowed;
         }
-        .game-over-popup {
+        .game-over-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -118,7 +118,7 @@
         ">
             Enter a word related to the topic. Click a word to see its definition. Only words above the threshold are updated.
         </div>
-        <div class="game-over-popup" style="display:none">
+        <div class="game-over-overlay" style="display:none">
             <div style="
                 display: flex;
                 flex-direction: column;
@@ -165,6 +165,9 @@
             document.getElementById('turnCounter').innerText = 'Turn: ' + state.turns;
             document.getElementById('scoreCounter').innerText = `Score: ${Math.floor(state.score * 1000)}`;
             stack.innerHTML = '';
+            const wordCount = document.createElement('div');
+            wordCount.textContent = `Words: ${state.words.length}/${state.word_ceiling}`;
+            stack.appendChild(wordCount);
             state.words.slice().reverse().forEach((word, index) => {
                 if (index == state.words.length - state.cutoff) {
                     stack.appendChild(document.createElement('hr'));
@@ -173,7 +176,8 @@
                 const dt = document.createElement('dt');
                 const dd = document.createElement('dd');
                 div.className = 'word';
-                dt.textContent = word.word;
+                dt.setAttribute('data-word', word.word);
+                dt.textContent = `${word.word} ${word.score.toFixed(2)} ${state.altered_words ? (state.altered_words.includes(word.word) ? '+' : '') : ''}`;
                 if (word.definition) {
                     dd.textContent = word.definition;
                 }
@@ -247,7 +251,7 @@
         document.addEventListener('click', async function(e) {
             const wordElement = e.target.closest('.word');
             if (!wordElement) return;
-            const clickedWord = wordElement.querySelector('dt') ? wordElement.querySelector('dt').textContent : wordElement.textContent;
+            const clickedWord = wordElement.querySelector('dt') ? wordElement.querySelector('dt').getAttribute('data-word') : wordElement.textContent;
             fetchWordDefinition(clickedWord);
         });
 
