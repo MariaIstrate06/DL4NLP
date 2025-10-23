@@ -26,4 +26,4 @@ def explore_word(word):
     
     return related
 
-print(explore_word("car"))
+print(explore_word(input('Tell me a word: ')))
