@@ -6,17 +6,25 @@ from nltk.util import ngrams
 
 
 url = "https://ro.wikipedia.org/wiki/Inteligenta_artificiala"
-html = requests.get(url).text
+# html = requests.get(url).text
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+html = requests.get(url, headers=headers).text
 soup = BeautifulSoup(html, 'html.parser')
-text = soup.get_text()
+# text = soup.get_text()
 
+content_div = soup.find("div", class_="mw-parser-output")
+
+if content_div:
+    text = content_div.get_text(separator=" ", strip=True)
+else:
+    text = "Class not found."
 
 tokens = re.findall(r'\b\w+\b', text.lower(), flags=re.UNICODE)
 tokens = tokens[:1000]  
 print("First 50 tokens:", tokens[:50])
 
 
-n = 3  # trigram
+n = 3 
 trigrams = list(ngrams(tokens, n))
 bigrams = list(ngrams(tokens, n-1))
 
@@ -34,7 +42,7 @@ def trigram_prob(trigram):
 
 # test example
 example = ("inteligenta", "artificiala", "este")
-print(f"P({example[-1]} | {example[:-1]}) =", trigram_prob(example))
+print(f"P({example[-1]} | {example[:-1]}) =", trigram_prob(example), '\n')
 
 
 def sentence_prob(sentence_tokens):
@@ -81,3 +89,14 @@ def bpe(corpus, merges=10):
 
 bpe_vocab = bpe(tokens[:50], merges=20)
 print("BPE vocab example:", list(bpe_vocab.keys())[:10])
+
+
+##### ex 3
+
+new_sentence_input = input("Enter a Romanian sentence: ")
+
+new_sentence_tokens = re.findall(r'\b\w+\b', new_sentence_input.lower(), flags=re.UNICODE)
+
+prob = sentence_prob(new_sentence_tokens)
+
+print(f"Sentence probability: {prob}")
