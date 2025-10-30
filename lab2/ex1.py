@@ -1,29 +1,47 @@
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from collections import Counter, defaultdict
+import re
 
+# example corpus
+corpus = [
+    "sunt fericit",
+    "sunt trist",
+    "sunt obosit",
+    "fericit sunt"
+]
 
-model_name = "gpt2"
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+# preprocess sentences
+def preprocess(sentences):
+    return [" ".join(list(sentence)) + " </w>" for sentence in sentences]  # add word-end token
 
-input_text = input("Input your 4 words: ")
+tokens = preprocess(corpus)
+vocab = Counter(tokens)
+print("Initial vocab:", vocab)
 
-input_ids = tokenizer.encode(input_text, return_tensors='pt')
+# BPE merges
+def get_stats(vocab):
+    pairs = defaultdict(int)
+    for word, freq in vocab.items():
+        symbols = word.split()
+        for i in range(len(symbols)-1):
+            pairs[(symbols[i], symbols[i+1])] += freq
+    return pairs
 
-output_ids = model.generate(
-    input_ids,
-    max_length=len(input_ids[0]) + 6,  
-    num_return_sequences=1,
-    no_repeat_ngram_size=2,
-    pad_token_id=tokenizer.eos_token_id
-)
+def merge_vocab(pair, vocab):
+    new_vocab = {}
+    bigram = ' '.join(pair)
+    replacement = ''.join(pair)
+    for word in vocab:
+        new_word = re.sub(r'\b' + re.escape(bigram) + r'\b', replacement, word)
+        new_vocab[new_word] = vocab[word]
+    return new_vocab
 
-
-output_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
-
-predicted_part = output_text[len(input_text):].strip()
-predicted_words = " ".join(predicted_part.split()[:2])
-
-print(f"Input: {input_text}")
-print(f"Predicted next two words: {predicted_words}")
-print(f"Full sentence: {input_text} {predicted_words}")
+# example: do 10 merges
+num_merges = 10
+for i in range(num_merges):
+    pairs = get_stats(vocab)
+    if not pairs:
+        break
+    best = max(pairs, key=pairs.get)
+    vocab = merge_vocab(best, vocab)
+    print(f"Merge {i+1}: {best}")
+    print(vocab)
