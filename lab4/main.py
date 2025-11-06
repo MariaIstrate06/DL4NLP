@@ -3,6 +3,8 @@ sentences = [
     'The parents of the bride and the groom were flying.',
     'The groom loves dangerous planes more than the bride.',
 ]
+import nltk
+nltk.download('punkt_tab')
 sentences = [s.lower() for s in sentences]
 ## Ex 1
 cfg_grammar = """

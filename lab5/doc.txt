@@ -1,0 +1,22 @@
+docs = [
+    # AI
+    "Artificial intelligence is the simulation of human intelligence in machines that are programmed to think like humans.",
+    "Machine learning is a subset of AI that allows systems to learn and improve from experience automatically.",
+    "Deep learning uses neural networks to model complex patterns in data for AI applications.",
+    "AI research focuses on problem solving, reasoning, knowledge representation, and perception.",
+    "Natural language processing is a field of AI concerned with the interaction between computers and humans using natural language.",
+
+    # Climate Change
+    "Climate change refers to long-term shifts in temperatures and weather patterns, mainly caused by human activities.",
+    "Global warming is a major consequence of climate change, leading to rising sea levels and extreme weather events.",
+    "Carbon dioxide and other greenhouse gases trap heat in the atmosphere and drive climate change.",
+    "Renewable energy sources like solar and wind are crucial to mitigating climate change impacts.",
+    "Environmental policies aim to reduce emissions and adapt societies to the effects of climate change.",
+
+    # Basketball
+    "Basketball is a team sport where two teams, usually of five players each, try to score points by shooting a ball through a hoop.",
+    "The NBA is the most popular professional basketball league in the United States.",
+    "Michael Jordan is widely regarded as one of the greatest basketball players of all time.",
+    "Basketball strategy includes offense, defense, and various formations to gain advantages.",
+    "College basketball is very popular in the United States, especially during the NCAA tournament."
+]

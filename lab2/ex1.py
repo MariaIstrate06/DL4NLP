@@ -17,7 +17,6 @@ tokens = preprocess(corpus)
 vocab = Counter(tokens)
 print("Initial vocab:", vocab)
 
-# BPE merges
 def get_stats(vocab):
     pairs = defaultdict(int)
     for word, freq in vocab.items():
@@ -35,7 +34,7 @@ def merge_vocab(pair, vocab):
         new_vocab[new_word] = vocab[word]
     return new_vocab
 
-# example: do 10 merges
+
 num_merges = 10
 for i in range(num_merges):
     pairs = get_stats(vocab)
