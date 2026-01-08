@@ -190,6 +190,18 @@ cython_debug/
 
 # Ruff stuff:
 .ruff_cache/
+# embeddings / datasets
+lab6/glove.6B*
+lab6/glove.6B/**
+
+# training outputs / checkpoints
+proiect/models/
+**/checkpoint-*/
+**/*.pt
+**/*.safetensors
+**/optimizer.pt
+
+
 
 # PyPI configuration file
 .pypirc
